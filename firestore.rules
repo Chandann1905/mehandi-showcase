@@ -1,0 +1,216 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════
+    // Helper Functions
+    // ═══════════════════════════════════════════════
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user is an admin (exists in admins collection)
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Get the admin document for the current user
+    function getAdmin() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Check if the admin has a specific role
+    function hasRole(role) {
+      return isAdmin() && getAdmin().data.role_id == role;
+    }
+
+    // Check if admin is Super Admin
+    function isSuperAdmin() {
+      return hasRole('SUPER_ADMIN');
+    }
+
+    // Check if admin is Content Manager or Super Admin
+    function isContentManager() {
+      return isSuperAdmin() || hasRole('CONTENT_MANAGER');
+    }
+
+    // Check if admin is Booking Manager or Super Admin
+    function isBookingManager() {
+      return isSuperAdmin() || hasRole('BOOKING_MANAGER');
+    }
+
+    // Check if a document is published/active and not deleted
+    function isPublished(data) {
+      return data.active == true && data.deleted == false;
+    }
+
+    // Rate limiting: check if enough time has passed since last write
+    function rateLimitPassed(collection, cooldownSeconds) {
+      let lastDoc = getAfter(/databases/$(database)/documents/$(collection)/$(request.auth.uid));
+      return lastDoc == null ||
+        request.time > lastDoc.data.created_at + duration.value(cooldownSeconds, 's');
+    }
+
+    // ═══════════════════════════════════════════════
+    // Admin & Role Collections
+    // ═══════════════════════════════════════════════
+
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && request.auth.uid == adminId;
+      allow write: if isSuperAdmin();
+    }
+
+    match /roles/{roleId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Public Content (Read-only for visitors)
+    // ═══════════════════════════════════════════════
+
+    match /categories/{categoryId} {
+      allow read: if resource.data.active == true && resource.data.deleted == false;
+      allow write: if isContentManager();
+    }
+
+    match /collections/{collectionId} {
+      allow read: if resource.data.active == true && resource.data.deleted == false;
+      allow write: if isContentManager();
+    }
+
+    match /designs/{designId} {
+      allow read: if resource.data.active == true && resource.data.deleted == false;
+      allow write: if isContentManager();
+    }
+
+    match /design_images/{imageId} {
+      allow read: if true;
+      allow write: if isContentManager();
+    }
+
+    match /packages/{packageId} {
+      allow read: if resource.data.active == true && resource.data.deleted == false;
+      allow write: if isContentManager();
+    }
+
+    match /pages/{pageId} {
+      allow read: if resource.data.published == true && resource.data.deleted == false;
+      allow write: if isContentManager();
+    }
+
+    match /homepage_sections/{sectionId} {
+      allow read: if resource.data.enabled == true;
+      allow write: if isContentManager();
+    }
+
+    match /menus/{menuId} {
+      allow read: if resource.data.visible == true;
+      allow write: if isContentManager();
+    }
+
+    match /reviews/{reviewId} {
+      // Public can read approved reviews
+      allow read: if resource.data.status == 'approved' && resource.data.deleted == false;
+      // Visitors can submit reviews (create only)
+      allow create: if true;
+      // Only content managers can update/delete
+      allow update, delete: if isContentManager();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Booking System
+    // ═══════════════════════════════════════════════
+
+    match /bookings/{bookingId} {
+      // Visitors can create bookings (submit booking form)
+      allow create: if true;
+      // Only booking managers can read/update bookings
+      allow read, update: if isBookingManager();
+      // Only super admin can delete bookings
+      allow delete: if isSuperAdmin();
+    }
+
+    match /booking_notes/{noteId} {
+      allow read, write: if isBookingManager();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Visitor Data (No auth required for MVP)
+    // ═══════════════════════════════════════════════
+
+    match /favorites/{favoriteId} {
+      allow read, write: if true;
+    }
+
+    match /recent_views/{viewId} {
+      allow read, write: if true;
+    }
+
+    // ═══════════════════════════════════════════════
+    // Forms System
+    // ═══════════════════════════════════════════════
+
+    match /forms/{formId} {
+      allow read: if resource.data.active == true;
+      allow write: if isContentManager();
+    }
+
+    match /form_submissions/{submissionId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════
+    // CMS Configuration (Admin only)
+    // ═══════════════════════════════════════════════
+
+    match /seo/{seoId} {
+      allow read: if true;
+      allow write: if isContentManager();
+    }
+
+    match /theme/{themeId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if isContentManager();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Future-ready Collections
+    // ═══════════════════════════════════════════════
+
+    match /artists/{artistId} {
+      allow read: if resource.data.active == true;
+      allow write: if isSuperAdmin();
+    }
+
+    match /cities/{cityId} {
+      allow read: if resource.data.active == true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Audit Logs (Admin read-only, system write)
+    // ═══════════════════════════════════════════════
+
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

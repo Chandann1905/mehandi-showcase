@@ -1,0 +1,112 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check file size
+    function isValidSize(maxBytes) {
+      return request.resource.size <= maxBytes;
+    }
+
+    // Helper: Check if file is an image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // ═══════════════════════════════════════════════
+    // Design Images
+    // ═══════════════════════════════════════════════
+    match /designs/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize(10 * 1024 * 1024);  // 10 MB
+    }
+
+    // ═══════════════════════════════════════════════
+    // Review Images
+    // ═══════════════════════════════════════════════
+    match /reviews/{allPaths=**} {
+      allow read: if true;
+      // Allow anonymous upload for review submissions
+      allow write: if isImage()
+        && isValidSize(5 * 1024 * 1024);  // 5 MB
+    }
+
+    // ═══════════════════════════════════════════════
+    // Category Images
+    // ═══════════════════════════════════════════════
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize(5 * 1024 * 1024);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Hero Images
+    // ═══════════════════════════════════════════════
+    match /hero/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize(10 * 1024 * 1024);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Page Assets
+    // ═══════════════════════════════════════════════
+    match /pages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isValidSize(10 * 1024 * 1024);
+    }
+
+    // ═══════════════════════════════════════════════
+    // General Uploads (Booking attachments)
+    // ═══════════════════════════════════════════════
+    match /uploads/{allPaths=**} {
+      allow read: if isAuthenticated();
+      // Allow anonymous upload for booking attachments
+      allow write: if isValidSize(10 * 1024 * 1024);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Branding Assets
+    // ═══════════════════════════════════════════════
+    match /logos/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize(2 * 1024 * 1024);  // 2 MB
+    }
+
+    match /favicons/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isImage()
+        && isValidSize(512 * 1024);  // 512 KB
+    }
+
+    // ═══════════════════════════════════════════════
+    // Media Library
+    // ═══════════════════════════════════════════════
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+        && isValidSize(10 * 1024 * 1024);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Deny everything else
+    // ═══════════════════════════════════════════════
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
