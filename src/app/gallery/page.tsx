@@ -6,6 +6,7 @@ import { AppImage } from "@/components/shared/AppImage";
 import { designService } from "@/services/design.service";
 import { categoryService } from "@/services/category.service";
 import { Button } from "@/components/ui/button";
+import { GallerySearch } from "@/components/shared/GallerySearch";
 
 export const metadata: Metadata = {
   title: "Design Gallery",
@@ -17,9 +18,9 @@ export const revalidate = 3600;
 export default async function GalleryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; sort?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; search?: string }>;
 }) {
-  const { category: categorySlug, sort = "newest" } = await searchParams;
+  const { category: categorySlug, sort = "newest", search = "" } = await searchParams;
 
   // Fetch categories for filtering
   const categories = await categoryService.getCategories();
@@ -31,6 +32,7 @@ export default async function GalleryPage({
   const filters = {
     category_id: activeCategory?.id,
     sortBy: sort as "newest" | "popular",
+    search: search || undefined,
   };
   
   const result = await designService.getDesigns(filters, 24);
@@ -46,6 +48,9 @@ export default async function GalleryPage({
             centered={true}
             className="mb-8"
           />
+
+          {/* Search */}
+          <GallerySearch initialValue={search} />
 
           {/* Filters */}
           <div className="flex flex-wrap justify-center gap-2 mb-12">

@@ -20,6 +20,10 @@ export class FormService {
       return { success: false, error: "Failed to submit form." };
     }
   }
+
+  async getAllForms(): Promise<import("@/types/form.types").Form[]> {
+    return formRepository.findAll();
+  }
 }
 
 export const formService = new FormService();

@@ -6,6 +6,7 @@ import { PublicLayout } from "@/components/layout";
 import { AppImage } from "@/components/shared/AppImage";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { designService } from "@/services/design.service";
+import { RecentViewsTracker } from "@/components/shared/RecentViewsTracker";
 
 export const revalidate = 3600;
 
@@ -46,6 +47,7 @@ export default async function DesignDetailPage({
 
   return (
     <PublicLayout>
+      <RecentViewsTracker designId={design.id} />
       <div className="pt-24 pb-16 bg-background">
         <div className="container-page">
           <Link href="/gallery" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-8 transition-colors">

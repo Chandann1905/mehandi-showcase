@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { useSettingsStore } from "@/store/settings.store";
@@ -76,6 +76,9 @@ export function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center space-x-4">
+          <Link href="/gallery" className="p-2 text-foreground/80 hover:text-primary transition-colors" aria-label="Search designs">
+            <Search className="h-5 w-5" />
+          </Link>
           <Button asChild variant="default" className="rounded-full px-6 bg-primary hover:bg-primary-light">
             <Link href="/book">Book Now</Link>
           </Button>

@@ -26,8 +26,12 @@ const NAV_ITEMS = [
   { label: "Bookings", href: "/admin/bookings", icon: CalendarHeart },
   { label: "Designs", href: "/admin/designs", icon: ImageIcon },
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
+  { label: "Collections", href: "/admin/collections", icon: FolderTree },
   { label: "Packages", href: "/admin/packages", icon: Package },
   { label: "Reviews", href: "/admin/reviews", icon: Star },
+  { label: "Homepage", href: "/admin/homepage", icon: LayoutDashboard },
+  { label: "Menus", href: "/admin/menus", icon: Menu },
+  { label: "Forms", href: "/admin/forms", icon: Settings },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
